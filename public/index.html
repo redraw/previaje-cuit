@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <title>Previaje CUIT</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    }
+    #app {
+      display: flex;
+      flex-flow: column;
+      justify-content: center;
+      align-items: center;
+      padding-top: 5em;
+    }
+    #logo {
+      background: black;
+      width: 100px;
+      padding: 1em;
+      margin: 1em;
+      border-radius: 5px;
+    }
+    input, button {
+      font-size: 1.2em;
+      text-align: center;
+      max-width: 18ch;
+      padding: 0.5em;
+      margin: 0;
+      /* border-radius: 5px; */
+    }
+    .error {
+      color: red;
+    }
+    .respuesta {
+      text-align: center;
+      width: 40ch;
+      max-width: 100%;
+      padding: 1em;
+    }
+    ul.actividades {
+      list-style-type: none;
+      font-size: smaller;
+      padding: 0;
+    }
+    ul.actividades li {
+      margin-bottom: 1em;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <img id="logo" src="/logo.svg" alt="">
+    <h1>¿Es prestador?</h1>
+    <form @submit.prevent="check">
+      <input 
+        id="cuit"
+        autocomplete="off" 
+        placeholder="CUIT" 
+        type="text" 
+        pattern="[-\d]+" 
+        title="Solo numeros (sin guiones)" 
+        v-model="cuit"
+      >
+      <button type="submit">BUSCAR</button>
+    </form>
+    <div v-if="loading" class="loading">
+      <p>BUSCANDO...</p>
+    </div>
+    <div v-if="error" class="error">
+      <p>{{ error }}</p>
+    </div>
+    <div v-if="respuesta" class="respuesta">
+      <h1 v-if="prestador" style="color: green">SI</h2>
+      <h1 v-if="!prestador" style="color: red">NO, QUIZAS?</h2>
+      <h2>{{ respuesta.data.titular }}</h2>
+      <ul class="actividades" v-if="rubros.length">
+        <li v-for="item in rubros">
+          [{{ item.codigo }}] {{ item.descripcion }}
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    const PREVIAJE_RUBROS = ['103012', '105010', '105020', '105030', '107129', '107301', '107309', '107930', '110211', '110212', '110290', '110300', '321012', '463211', '477210', '477290', '477490', '477830', '491120', '492110', '492140', '492150', '492160', '492180', '492190', '501100', '502101', '511000', '522091', '524130', '524310', '551022', '551023', '551090', '552000', '561011', '561012', '561013', '561014', '561019', '561030', '562010', '562099', '591300', '681010', '771110', '771190', '771210', '771220', '771290', '772099', '791100', '791901', '791909', '823000', '900011', '900021', '900030', '900040', '900091', '910200', '910300', '931042', '939010', '939030', '939090'] 
+
+    new Vue({
+      el: "#app",
+      
+      data: {
+        cuit: '',
+        respuesta: null,
+        error: null,
+        prestador: false,
+        loading: false,
+        rubros: []
+      },
+
+      methods: {
+        async check() {
+          this.loading = true
+          try {
+            this.respuesta = await axios.get("/api/cuit", {
+              params: {"q": this.cuit.trim().replaceAll("-", "")}
+            })
+            this.rubros = this.respuesta.data.actividades.filter(item => {
+              return PREVIAJE_RUBROS.includes(item.codigo)
+            })
+            this.prestador = this.rubros.length > 0
+            console.log(this.respuesta)
+          } catch (error) {
+            this.error = error.response.status != 500 ? error.response.data.error : error.message
+            this.prestador = false
+            console.log({error})
+          } finally {
+            this.loading = false
+          }
+        }
+      },
+      watch: {
+        cuit () {
+          this.error = null
+          this.rubros = []
+          this.respuesta = null
+        }
+      }
+    })
+  </script>
+</body>
+</html>

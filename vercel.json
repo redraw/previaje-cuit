@@ -1,0 +1,17 @@
+{
+  "headers": [
+    {
+      "source": "/api/cuit",
+      "headers": [
+        {
+          "key": "cache-control",
+          "value": "s-maxage=2592000"
+        }
+      ]
+    }
+  ],
+  "rewrites": [{
+      "source": "/api/(.*)",
+      "destination": "/api/index.py"
+  }]
+}
